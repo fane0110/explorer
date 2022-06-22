@@ -54,6 +54,42 @@ func UpdateBlocks(ws *sync.WaitGroup) {
 
 }
 
+
+func GetBlock(ws *sync.WaitGroup,getnum int64) {
+	defer ws.Done()
+
+	//blockChannel := make(chan *rpcpb.Block, 10)
+	//go insertBlock(blockChannel)
+
+	var topHeightInMongo int64
+
+	topHeightInMongo = getnum
+	blockRspn, err := blockchain.GetBlockByNum(topHeightInMongo, true)
+	if err != nil {
+		log.Println("Download block", topHeightInMongo, "error:", err)
+		time.Sleep(time.Second )
+		blockRspn, err = blockchain.GetBlockByNum(topHeightInMongo, true)
+		if err != nil {
+			log.Println("Download block", topHeightInMongo, "error:", err)
+			time.Sleep(time.Second )
+			blockRspn, err = blockchain.GetBlockByNum(topHeightInMongo, true)
+		}
+	}
+	if blockRspn.Status == rpcpb.BlockResponse_PENDING {
+		log.Println("Download block", topHeightInMongo, "Pending")
+		time.Sleep(time.Second)
+	}
+	//blockChannel <- blockRspn.Block
+	hogeinsertBlock(blockRspn.Block)
+	log.Println("Download block", topHeightInMongo, " Succ!")
+
+	
+	
+	
+
+}
+
+
 func insertBlock(blockChannel chan *rpcpb.Block) {
 	collection := db.GetCollection(db.CollectionBlocks)
 
@@ -80,8 +116,36 @@ func insertBlock(blockChannel chan *rpcpb.Block) {
 			if err != nil {
 				log.Println("updateBlock insert mongo error:", err)
 			}
+			
 		default:
 
 		}
 	}
+}
+
+func hogeinsertBlock(blockChannel  *rpcpb.Block) {
+	collection := db.GetCollection(db.CollectionBlocks)
+
+	b := blockChannel
+	txs := b.Transactions
+
+	wg := new(sync.WaitGroup)
+	wg.Add(2)
+	go func() {
+		db.ProcessTxs(txs, b.Number)
+		wg.Done()
+	}()
+	go func() {
+		db.ProcessTxsForAccount(txs, b.Time, b.Number)
+		wg.Done()
+	}()
+	wg.Wait()
+
+	b.Transactions = make([]*rpcpb.Transaction, 0)
+	err := collection.Insert(*b)
+
+	if err != nil {
+		log.Println("updateBlock insert mongo error:", err)
+	}
+	
 }
