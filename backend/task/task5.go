@@ -1,6 +1,7 @@
 ﻿package main
 
 import (
+	"os"
 	"sync"
 	"github.com/iost-official/explorer/backend/config"
 	"github.com/iost-official/explorer/backend/task/cron"
@@ -20,9 +21,6 @@ func main() {
 	var topHeightInMongo int64
 	maxSessions :=150
 	ticker := time.NewTicker(time.Second)
-	s1 := "1000000"
-	psnum, _ := strconv.ParseInt(s1, 10, 64)
-
 	for range ticker.C {
 		topBlkInMongo, err := db.GetTopBlock()
 		if err != nil {
@@ -60,9 +58,6 @@ func main() {
 		ws2.Wait()
 		
 		topHeightInMongo += int64(maxSessions)
-		if topHeightInMongo >= psnum{
-			break
-		}
 	}
 	// time.Sleep(10 * time.Second)
 	// start tasks
