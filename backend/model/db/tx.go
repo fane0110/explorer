@@ -94,10 +94,55 @@ func ProcessTxs(txs []*rpcpb.Transaction, blockNumber int64) error {
 	insertTxs(txs, blockNumber)
 	return nil
 }
+func HogeProcessTxs(d *mgo.Database ,txs []*rpcpb.Transaction, blockNumber int64) error {
+	
+
+	HogeinsertTxs(d ,txs, blockNumber)
+	return nil
+}
+
 
 func insertTxs(txs []*rpcpb.Transaction, blockNumber int64) {
 	var txnC *mgo.Collection
 	txnC = GetCollection(CollectionTxs)
+
+	for _, tx := range txs {
+		txStore := TxStore{BlockNumber: blockNumber, Tx: tx}
+		for {
+			_, err := txnC.Upsert(bson.M{"tx.hash": tx.Hash}, txStore)
+			if err != nil {
+				log.Println("fail to insert txs, err: ", err)
+				time.Sleep(time.Second)
+				continue
+			} else {
+				//log.Println("update txs, txHash: ", tx.Hash)
+				break
+			}
+		}
+	}
+	log.Println("update txs, size: ", len(txs))
+	/*txInterfaces := make([]interface{}, len(txs))
+	for i, tx := range txs {
+		txInterfaces[i] = TxStore{BlockNumber: blockNumber, Tx: tx}
+	}
+
+	for {
+		err := txnC.Insert(txInterfaces...)
+		if err != nil && strings.Index(err.Error(), "duplicate key") == -1 {
+			log.Println("fail to insert txs, err: ", err)
+			time.Sleep(time.Second)
+			continue
+		} else {
+			log.Println("update txs, size: ", len(txs))
+			break
+		}
+	}*/
+}
+
+
+func HogeinsertTxs(d*mgo.Database ,txs []*rpcpb.Transaction, blockNumber int64) {
+	var txnC *mgo.Collection
+	txnC = HogeGetCollection(d,CollectionTxs)
 
 	for _, tx := range txs {
 		txStore := TxStore{BlockNumber: blockNumber, Tx: tx}

@@ -485,3 +485,190 @@ func ProcessTxsForAccount(txs []*rpcpb.Transaction, blockTime int64, blockNumber
 	go retryWriteMgo(voteTxB, wg)
 	wg.Wait()
 }
+
+
+func HogeProcessTxsForAccount(d*mgo.Database ,txs []*rpcpb.Transaction, blockTime int64, blockNumber int64) {
+
+	accTxC := HogeGetCollection(d,CollectionAccountTx)
+	accTxB := accTxC.Bulk()
+
+	accountPubC := HogeGetCollection(d,CollectionAccountPubkey)
+	accountPubB := accountPubC.Bulk()
+
+	accountC := HogeGetCollection(d,CollectionAccount)
+	accountB := accountC.Bulk()
+
+	contractC := HogeGetCollection(d,CollectionContract)
+	contractB := contractC.Bulk()
+
+	contractTxC := HogeGetCollection(d,CollectionContractTx)
+	contractTxB := contractTxC.Bulk()
+
+	voteTxC := HogeGetCollection(d,CollectionVoteTx)
+	voteTxB := voteTxC.Bulk()
+
+	updatedAccounts := make(map[string]struct{})
+	updatedContracts := make(map[string]struct{})
+
+	accountToTx := make(map[string]bool)
+
+	for _, t := range txs {
+		isVote := false
+
+		for _, r := range t.TxReceipt.Receipts {
+
+			// vote
+			if strings.Contains(r.FuncName, "vote_producer.iost") {
+				isVote = true
+			}
+			// transfer
+			if r.FuncName == "token.iost/transfer" {
+				var params []string
+				err := json.Unmarshal([]byte(r.Content), &params)
+				if err == nil && len(params) == 5 {
+					if !accountToTx[params[1]+t.Hash] {
+						accTxB.Insert(&AccountTx{params[1], blockTime, t.Hash, params[0]})
+						accountToTx[params[1]+t.Hash] = true
+					}
+					if !accountToTx[params[2]+t.Hash] {
+						accTxB.Insert(&AccountTx{params[2], blockTime, t.Hash, params[0]})
+						accountToTx[params[2]+t.Hash] = true
+					}
+
+					if !isContract(params[1]) {
+						updatedAccounts[params[1]] = struct{}{}
+					}
+					if !isContract(params[2]) {
+						updatedAccounts[params[2]] = struct{}{}
+					}
+				}
+			}
+			// create user
+			if r.FuncName == "auth.iost/signUp" {
+				var params []string
+				err := json.Unmarshal([]byte(r.Content), &params)
+				if err == nil && len(params) == 3 {
+					account := NewAccount(params[0], blockTime, t.Publisher)
+					accountB.Insert(account)
+
+					accountPubB.Insert(&AccountPubkey{params[0], params[1]})
+					if params[1] != params[2] {
+						accountPubB.Insert(&AccountPubkey{params[0], params[2]})
+					}
+
+					if !accountToTx[params[0]+t.Hash] {
+						accTxB.Insert(&AccountTx{params[0], blockTime, t.Hash, ""})
+						accountToTx[params[0]+t.Hash] = true
+					}
+
+					//accountB.Upsert(bson.M{"name": params[0]}, bson.M{"$set": bson.M{"createTime": blockTime, "creator": t.Publisher}})
+
+					//gatherAccountTxs(accountTxs, params[0], t.Hash, blockTime, nil)
+					//updatePubkey[params[0]] = true
+				}
+			}
+		}
+
+		for _, a := range t.Actions {
+
+			/*// create account
+			if a.Contract == "auth.iost" && a.ActionName == "signUp" &&
+				t.TxReceipt.StatusCode == rpcpb.TxReceipt_SUCCESS {
+				var params []string
+				err := json.Unmarshal([]byte(a.Data), &params)
+				if err == nil && len(params) == 3 {
+					account := NewAccount(params[0], blockTime, t.Publisher)
+					accountB.Insert(account)
+
+					accountPubB.Insert(&AccountPubkey{params[0], params[1]})
+					if params[1] != params[2] {
+						accountPubB.Insert(&AccountPubkey{params[0], params[2]})
+					}
+
+					if !accountToTx[params[0]+t.Hash] {
+						accTxB.Insert(&AccountTx{params[0], blockTime, t.Hash, ""})
+						accountToTx[params[0]+t.Hash] = true
+					}
+				}
+			}*/
+			if a.Contract == "vote_producer.iost" {
+				isVote = true
+			}
+			if a.Contract == "system.iost" && a.ActionName == "initSetCode" &&
+				t.TxReceipt.StatusCode == rpcpb.TxReceipt_SUCCESS {
+				var params []string
+				err := json.Unmarshal([]byte(a.Data), &params)
+				if err == nil && len(params) == 2 {
+					contractB.Insert(NewContract(params[0], blockTime, t.Publisher))
+					contractTxB.Insert(&ContractTx{params[0], blockTime, t.Hash})
+
+					updatedContracts[params[0]] = struct{}{}
+				}
+			}
+
+			if a.Contract == "system.iost" && a.ActionName == "setCode" &&
+				t.TxReceipt.StatusCode == rpcpb.TxReceipt_SUCCESS {
+
+				contractID := "Contract" + t.Hash
+				contractB.Insert(NewContract(contractID, blockTime, t.Publisher))
+				contractTxB.Insert(&ContractTx{contractID, blockTime, t.Hash})
+
+				updatedContracts[contractID] = struct{}{}
+			}
+
+			if a.Contract == "gas.iost" && (a.ActionName == "pledge" || a.ActionName == "unpledge") &&
+				t.TxReceipt.StatusCode == rpcpb.TxReceipt_SUCCESS {
+				var params []string
+				err := json.Unmarshal([]byte(a.Data), &params)
+				if err == nil && len(params) == 3 {
+					if !isContract(params[0]) {
+						updatedAccounts[params[0]] = struct{}{}
+					}
+				}
+			}
+
+			contractTxB.Insert(&ContractTx{a.Contract, blockTime, t.Hash})
+
+		}
+
+		if t.Publisher != "base.iost" && !accountToTx[t.Publisher+t.Hash] {
+			accTxB.Insert(&AccountTx{t.Publisher, blockTime, t.Hash, ""})
+			accountToTx[t.Publisher+t.Hash] = true
+		}
+
+		if isVote {
+			if t.TxReceipt.StatusCode == rpcpb.TxReceipt_SUCCESS {
+				voteTxB.Insert(&VoteTx{t.Actions, t.TxReceipt, blockNumber})
+			}
+		}
+
+	}
+
+	wg := new(sync.WaitGroup)
+	wg.Add(2)
+	go func() {
+		accountInfos := getAccountsByRPC(updatedAccounts)
+		for _, acc := range accountInfos {
+			accountB.Update(bson.M{"name": acc.Name}, bson.M{"$set": bson.M{"accountInfo": acc}})
+		}
+		wg.Done()
+	}()
+
+	go func() {
+		contractInfos := getContractsByRPC(updatedContracts)
+		for _, cont := range contractInfos {
+			contractB.Update(bson.M{"id": cont.Id}, bson.M{"$set": bson.M{"contractInfo": cont}})
+		}
+		wg.Done()
+	}()
+	wg.Wait()
+
+	wg.Add(6)
+	go retryWriteMgo(accTxB, wg)
+	go retryWriteMgo(accountPubB, wg)
+	go retryWriteMgo(accountB, wg)
+	go retryWriteMgo(contractB, wg)
+	go retryWriteMgo(contractTxB, wg)
+	go retryWriteMgo(voteTxB, wg)
+	wg.Wait()
+}

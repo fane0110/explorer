@@ -24,12 +24,48 @@ func GetDb() (*mgo.Database, error) {
 	return mongoClient.DB(Db), nil
 }
 
+func HogeGetDb() (*mgo.Session,*mgo.Database, error) {
+	var err error
+	var mongoClient *mgo.Session
+
+	if MongoUser == "" && MongoPassWord == "" {
+		mongoClient, err = transport.GetMongoClient(MongoLink, Db)
+	} else {
+		mongoClient, err = transport.GetMongoClientWithAuth(MongoLink, MongoUser, MongoPassWord, Db)
+	}
+	if err != nil {
+		return nil,nil, err
+	}
+
+	return mongoClient, mongoClient.DB(Db), nil
+}
+
+
 func GetCollection(c string) *mgo.Collection {
 	var d *mgo.Database
 	var err error
 	var retryTime int
 	for {
 		d, err = GetDb()
+		if err != nil {
+			log.Println("fail to get db collection ", err)
+			time.Sleep(time.Second)
+			retryTime++
+			if retryTime > 10 {
+				log.Fatalln("fail to get db collection, retry time exceeds")
+			}
+			continue
+		}
+		return d.C(c)
+	}
+}
+
+func HogeGetCollection(d *mgo.Database , c string) *mgo.Collection {
+
+	var err error
+	var retryTime int
+	for {
+		
 		if err != nil {
 			log.Println("fail to get db collection ", err)
 			time.Sleep(time.Second)
