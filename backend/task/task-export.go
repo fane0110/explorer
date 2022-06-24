@@ -29,6 +29,28 @@ func main() {
 	var d *mgo.Database
 	var err error
 
+	var collections []string = []string{
+		db.CollectionBlocks                    , 
+		db.CollectionBP                        , 
+		db.CollectionTxs                       , 
+		db.CollectionFlatTx                    , 
+		db.CollectionAccount                   , 
+		db.CollectionAccountTx                 , 
+		db.CollectionAccountPubkey             , 
+		db.CollectionContract                  , 
+		db.CollectionContractTx                , 
+		db.CollectionTaskCursor                , 
+		db.CollectionBlockPay                  , 
+		db.CollectionApplyIOST                 , 
+		db.CollectionVoteTx                    ,
+		db.CollectionProducerAward             , 
+		db.CollectionUserAward                 , 
+		db.CollectionProducerContributionAward , 
+		db.CollectionUserContributionAward     , 
+		db.CollectionFailedAward               , 
+		db.CollectionAwardInfo                 , 
+		db.CollectionProducerLevelInfo          }
+
 	maxSessions :=20
 	ticker := time.NewTicker(time.Second)
 	
@@ -105,60 +127,40 @@ func main() {
 
 	}
 	
-	var collections []string = []string{
-		db.CollectionBlocks                    , 
-		db.CollectionBP                        , 
-		db.CollectionTxs                       , 
-		db.CollectionFlatTx                    , 
-		db.CollectionAccount                   , 
-		db.CollectionAccountTx                 , 
-		db.CollectionAccountPubkey             , 
-		db.CollectionContract                  , 
-		db.CollectionContractTx                , 
-		db.CollectionTaskCursor                , 
-		db.CollectionBlockPay                  , 
-		db.CollectionApplyIOST                 , 
-		db.CollectionVoteTx                    ,
-		db.CollectionProducerAward             , 
-		db.CollectionUserAward                 , 
-		db.CollectionProducerContributionAward , 
-		db.CollectionUserContributionAward     , 
-		db.CollectionFailedAward               , 
-		db.CollectionAwardInfo                 , 
-		db.CollectionProducerLevelInfo          }
-		from_to_name:=strconv.FormatInt(fromblock,10)+"_"+strconv.FormatInt(toblock,10)
-		exec.Command("mkdir",from_to_name).Run()
+	
+	from_to_name:=strconv.FormatInt(fromblock,10)+"_"+strconv.FormatInt(toblock,10)
+	exec.Command("mkdir",from_to_name).Run()
 
-		for _, value := range collections {
-			ws2.Add(1)
-			go func(collectionname string){
-				cmd:=exec.Command("mongoexport",
-				"-d=explorer",
-				"-c="+collectionname,
-				"--type=json",
-				"--out="+from_to_name+"/"+collectionname+"_"+from_to_name+".json")
-				stdErrorPipe, err := cmd.StderrPipe()
-				if err != nil {
-					log.Fatal(err)
-				}
-	
-				if err := cmd.Start(); err != nil {
-					log.Fatal(err)
-				}
-	
-				slurp, _ := ioutil.ReadAll(stdErrorPipe)
-				fmt.Printf("stderr: %s\n", slurp)
-	
-				if err := cmd.Wait(); err != nil {
-					log.Fatal(err)
-				}
-				if err != nil {
-					log.Println("command err:", err)
-				}
-				ws2.Done()
-			}(value)
-		}
-		ws2.Wait()
+	for _, value := range collections {
+		ws2.Add(1)
+		go func(collectionname string){
+			cmd:=exec.Command("mongoexport",
+			"-d=explorer",//explorer
+			"-c="+collectionname,
+			"--type=json",
+			"--out="+from_to_name+"/"+collectionname+"_"+from_to_name+".json")
+			stdErrorPipe, err := cmd.StderrPipe()
+			if err != nil {
+				log.Fatal(err)
+			}
+
+			if err := cmd.Start(); err != nil {
+				log.Fatal(err)
+			}
+
+			slurp, _ := ioutil.ReadAll(stdErrorPipe)
+			fmt.Printf("stderr: %s\n", slurp)
+
+			if err := cmd.Wait(); err != nil {
+				log.Fatal(err)
+			}
+			if err != nil {
+				log.Println("command err:", err)
+			}
+			ws2.Done()
+		}(value)
+	}
+	ws2.Wait()
 	// time.Sleep(10 * time.Second)
 	// start tasks
 	
