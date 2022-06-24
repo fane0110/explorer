@@ -28,7 +28,7 @@ func main() {
 	var retryTime int
 	var d *mgo.Database
 	var err error
-
+	const interval =int64(1000)
 	var collections []string = []string{
 		db.CollectionBlocks                    , 
 		db.CollectionBP                        , 
@@ -51,7 +51,7 @@ func main() {
 		db.CollectionAwardInfo                 , 
 		db.CollectionProducerLevelInfo          }
 
-	maxSessions :=20
+	maxSessions :=150
 	ticker := time.NewTicker(time.Second)
 	
 	fromblock, _ := strconv.ParseInt(os.Args[1], 10, 64)
@@ -75,92 +75,98 @@ func main() {
 	} 
 
 	topHeightInMongo = fromblock - 1
+	inner_from_block :=fromblock
+	inner_to_block := inner_from_block +interval -1
 
-
 	
-	
-	for {
-		log.Print("delete取得 ")
-		d, err = db.GetDb()
-		if err != nil {
-			log.Println("fail to get db collection ", err)
-			time.Sleep(time.Second)
-			retryTime++
-			if retryTime > 10 {
-				log.Fatalln("fail to get db collection, retry time exceeds")
-			}
-			continue
-		}
-		break
-	}
-	d.DropDatabase()//いらないデータを一度消す
-	
-	
-	for j := 1;;j++{
-		
-		for i := 1; i <= maxSessions; i++ {
-			ws2.Add(1)
-			getnum :=topHeightInMongo + int64(i)
-			log.Print(getnum)
-			if getnum > toblock{
-				log.Print("stop")
-				ws2.Done()
+	for;inner_from_block<toblock;{
+		for {
+			log.Print("delete取得 ")
+			d, err = db.GetDb()
+			if err != nil {
+				log.Println("fail to get db collection ", err)
+				time.Sleep(time.Second)
+				retryTime++
+				if retryTime > 10 {
+					log.Fatalln("fail to get db collection, retry time exceeds")
+				}
 				continue
 			}
-			// download block
-			go cron.GetBlock(ws2,getnum)
-			/* go func(i int64) {
-				fmt.Println(i)
-				
-				ws2.Done()
-			
-			}(getnum)  */
-		}
-		
-		//fmt.Println(j)
-		ws2.Wait()
-
-		topHeightInMongo += int64(maxSessions)
-		if topHeightInMongo >= toblock{
 			break
 		}
-
+		d.DropDatabase()//いらないデータを一度消す
+		
+		
+		for j := 1;;j++{
+			
+			for i := 1; i <= maxSessions; i++ {
+				ws2.Add(1)
+				getnum :=topHeightInMongo + int64(i)
+				log.Print(getnum)
+				if getnum > inner_to_block{
+					log.Print("stop")
+					ws2.Done()
+					continue
+				}
+				// download block
+				go cron.GetBlock(ws2,getnum)
+				/* go func(i int64) {
+					fmt.Println(i)
+					
+					ws2.Done()
+				
+				}(getnum)  */
+			}
+			
+			//fmt.Println(j)
+			ws2.Wait()
+	
+			topHeightInMongo += int64(maxSessions)
+			if topHeightInMongo >= inner_to_block{
+				break
+			}
+	
+		}
+		
+		
+		from_to_name:=strconv.FormatInt(inner_from_block,10)+"_"+strconv.FormatInt(inner_to_block,10)
+		exec.Command("mkdir",from_to_name).Run()
+	
+		for _, value := range collections {
+			ws2.Add(1)
+			go func(collectionname string){
+				cmd:=exec.Command("mongoexport",
+				"-d=explorer4",//explorer
+				"-c="+collectionname,
+				"--type=json",
+				"--out="+from_to_name+"/"+collectionname+"_"+from_to_name+".json")
+				stdErrorPipe, err := cmd.StderrPipe()
+				if err != nil {
+					log.Fatal(err)
+				}
+	
+				if err := cmd.Start(); err != nil {
+					log.Fatal(err)
+				}
+	
+				slurp, _ := ioutil.ReadAll(stdErrorPipe)
+				fmt.Printf("stderr: %s\n", slurp)
+	
+				if err := cmd.Wait(); err != nil {
+					log.Fatal(err)
+				}
+				if err != nil {
+					log.Println("command err:", err)
+				}
+				ws2.Done()
+			}(value)
+		}
+		ws2.Wait()
+	
+		inner_from_block += interval
+		inner_to_block += interval 
 	}
 	
-	
-	from_to_name:=strconv.FormatInt(fromblock,10)+"_"+strconv.FormatInt(toblock,10)
-	exec.Command("mkdir",from_to_name).Run()
-
-	for _, value := range collections {
-		ws2.Add(1)
-		go func(collectionname string){
-			cmd:=exec.Command("mongoexport",
-			"-d=explorer",//explorer
-			"-c="+collectionname,
-			"--type=json",
-			"--out="+from_to_name+"/"+collectionname+"_"+from_to_name+".json")
-			stdErrorPipe, err := cmd.StderrPipe()
-			if err != nil {
-				log.Fatal(err)
-			}
-
-			if err := cmd.Start(); err != nil {
-				log.Fatal(err)
-			}
-
-			slurp, _ := ioutil.ReadAll(stdErrorPipe)
-			fmt.Printf("stderr: %s\n", slurp)
-
-			if err := cmd.Wait(); err != nil {
-				log.Fatal(err)
-			}
-			if err != nil {
-				log.Println("command err:", err)
-			}
-			ws2.Done()
-		}(value)
-	}
-	ws2.Wait()
 	// time.Sleep(10 * time.Second)
 	// start tasks
 	
