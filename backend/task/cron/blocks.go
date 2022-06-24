@@ -51,9 +51,7 @@ func UpdateBlocks(ws *sync.WaitGroup) {
 		topHeightInMongo++
 		log.Println("Download block", topHeightInMongo, " Succ!")
 
-		if topHeightInMongo >= 20000{
-			break
-		}
+
 	}
 
 }
@@ -117,11 +115,13 @@ func GetBlock(ws *sync.WaitGroup,getnum int64) {
 }
 
 
+
+
 func HogeGetBlock(sdb *mgo.Database,ws *sync.WaitGroup,getnum int64) {
 	defer ws.Done()
 
 	var err error
-
+	
 
 	//blockChannel := make(chan *rpcpb.Block, 10)
 	//go insertBlock(blockChannel)
@@ -202,7 +202,7 @@ func hogeinsertBlock(d *mgo.Database,blockChannel  *rpcpb.Block) {
 
 
 	collection := db.HogeGetCollection(d,db.CollectionBlocks)
-
+	
 	b := blockChannel
 	txs := b.Transactions
 
