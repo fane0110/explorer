@@ -133,7 +133,7 @@ func main() {
 			ws2.Add(1)
 			go func(collectionname string){
 				cmd:=exec.Command("mongoexport",
-				"-d=explorer4",
+				"-d=explorer",
 				"-c="+collectionname,
 				"--type=json",
 				"--out="+from_to_name+"/"+collectionname+"_"+from_to_name+".json")
