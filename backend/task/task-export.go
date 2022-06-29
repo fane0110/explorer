@@ -12,6 +12,7 @@ import (
 	"strconv"
 	"os/exec"
 	"io/ioutil"
+	"strings"
 	"github.com/globalsign/mgo"
 
 )
@@ -31,27 +32,15 @@ func main() {
 	const interval =int64(1000)
 	var collections []string = []string{
 		db.CollectionBlocks                    , 
-		db.CollectionBP                        , 
 		db.CollectionTxs                       , 
-		db.CollectionFlatTx                    , 
 		db.CollectionAccount                   , 
 		db.CollectionAccountTx                 , 
 		db.CollectionAccountPubkey             , 
 		db.CollectionContract                  , 
 		db.CollectionContractTx                , 
-		db.CollectionTaskCursor                , 
-		db.CollectionBlockPay                  , 
-		db.CollectionApplyIOST                 , 
-		db.CollectionVoteTx                    ,
-		db.CollectionProducerAward             , 
-		db.CollectionUserAward                 , 
-		db.CollectionProducerContributionAward , 
-		db.CollectionUserContributionAward     , 
-		db.CollectionFailedAward               , 
-		db.CollectionAwardInfo                 , 
-		db.CollectionProducerLevelInfo          }
+		db.CollectionVoteTx                    ,}
 
-	maxSessions :=150
+	maxSessions :=100
 	ticker := time.NewTicker(time.Second)
 	
 	fromblock, _ := strconv.ParseInt(os.Args[1], 10, 64)
@@ -135,11 +124,20 @@ func main() {
 		for _, value := range collections {
 			ws2.Add(1)
 			go func(collectionname string){
-				cmd:=exec.Command("mongoexport",
+
+				cmdstr := strings.Join([]string{
+					"mongoexport",
 				"-d=explorer4",//explorer
 				"-c="+collectionname,
 				"--type=json",
-				"--out="+from_to_name+"/"+collectionname+"_"+from_to_name+".json")
+				"|","sed",
+				"'/"+strconv.Quote("_id")+":/s/"+strconv.Quote("_id")+":[^,]*,//'",
+				">",
+				from_to_name+"/"+collectionname+".json",
+				}, " ") 
+				log.Print(cmdstr)
+				cmd:=exec.Command("sh", "-c", cmdstr)
+
 				stdErrorPipe, err := cmd.StderrPipe()
 				if err != nil {
 					log.Fatal(err)
@@ -148,7 +146,7 @@ func main() {
 				if err := cmd.Start(); err != nil {
 					log.Fatal(err)
 				}
-	
+				
 				slurp, _ := ioutil.ReadAll(stdErrorPipe)
 				fmt.Printf("stderr: %s\n", slurp)
 	

@@ -68,18 +68,20 @@ func GetBlock(ws *sync.WaitGroup,getnum int64) {
 
 	var topHeightInMongo int64
 
+	var blockRspn *rpcpb.BlockResponse
+
 	topHeightInMongo = getnum
-	blockRspn, err := blockchain.GetBlockByNum(topHeightInMongo, true)
-	if err != nil {
-		log.Println("Download block", topHeightInMongo, "error:", err)
-		time.Sleep(time.Second )
+	for{
 		blockRspn, err = blockchain.GetBlockByNum(topHeightInMongo, true)
 		if err != nil {
 			log.Println("Download block", topHeightInMongo, "error:", err)
 			time.Sleep(time.Second )
-			blockRspn, err = blockchain.GetBlockByNum(topHeightInMongo, true)
+			continue
+	
 		}
+		break
 	}
+
 	if blockRspn.Status == rpcpb.BlockResponse_PENDING {
 		log.Println("Download block", topHeightInMongo, "Pending")
 		time.Sleep(time.Second)
@@ -121,7 +123,7 @@ func HogeGetBlock(sdb *mgo.Database,ws *sync.WaitGroup,getnum int64) {
 	defer ws.Done()
 
 	var err error
-	
+	var blockRspn *rpcpb.BlockResponse
 
 	//blockChannel := make(chan *rpcpb.Block, 10)
 	//go insertBlock(blockChannel)
@@ -129,17 +131,17 @@ func HogeGetBlock(sdb *mgo.Database,ws *sync.WaitGroup,getnum int64) {
 	var topHeightInMongo int64
 
 	topHeightInMongo = getnum
-	blockRspn, err := blockchain.GetBlockByNum(topHeightInMongo, true)
-	if err != nil {
-		log.Println("Download block", topHeightInMongo, "error:", err)
-		time.Sleep(time.Second )
+	for{
 		blockRspn, err = blockchain.GetBlockByNum(topHeightInMongo, true)
 		if err != nil {
 			log.Println("Download block", topHeightInMongo, "error:", err)
 			time.Sleep(time.Second )
-			blockRspn, err = blockchain.GetBlockByNum(topHeightInMongo, true)
+			continue
+	
 		}
+		break
 	}
+
 	if blockRspn.Status == rpcpb.BlockResponse_PENDING {
 		log.Println("Download block", topHeightInMongo, "Pending")
 		time.Sleep(time.Second)

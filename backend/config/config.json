@@ -6,7 +6,7 @@
     "port": "27017",
     "user": "explorer",
     "password": "explorder",
-    "db": "explorer"
+    "db": "explorer5"
   },
   "googleCaptcha": {
     "secret": ""
