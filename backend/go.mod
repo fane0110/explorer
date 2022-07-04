@@ -4,6 +4,7 @@ go 1.13
 
 require (
 	github.com/astaxie/beego v1.12.0
+	github.com/aws/aws-sdk-go v1.44.46
 	github.com/bitly/go-simplejson v0.5.0
 	github.com/bmizerany/assert v0.0.0-20160611221934-b7ed37b82869 // indirect
 	github.com/btcsuite/btcutil v1.0.1 // indirect
@@ -31,7 +32,7 @@ require (
 	github.com/spf13/viper v1.1.1-0.20180828220506-8addaed22d65
 	github.com/valyala/fasttemplate v1.1.0 // indirect
 	golang.org/x/crypto v0.0.0-20200117160349-530e935923ad
-	golang.org/x/net v0.0.0-20191002035440-2ec189313ef0
+	golang.org/x/net v0.0.0-20220127200216-cd36cc0744dd
 	golang.org/x/oauth2 v0.0.0-20200107190931-bf48bf16ab8d
 	golang.org/x/sys v0.0.0-20220520151302-bc2c85ada10a // indirect
 	google.golang.org/api v0.15.0

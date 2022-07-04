@@ -14,7 +14,7 @@ import (
 	"io/ioutil"
 	"strings"
 	"github.com/globalsign/mgo"
-
+	"io"
 	"github.com/aws/aws-sdk-go/aws"
 	"github.com/aws/aws-sdk-go/aws/session"
 	"github.com/aws/aws-sdk-go/service/s3/s3manager"
@@ -25,7 +25,6 @@ import (
 
 
 var ws2 = new(sync.WaitGroup)
-
 
 func main() {
 	config.ReadConfig("")
@@ -50,6 +49,7 @@ func main() {
 	
 	fromblock, _ := strconv.ParseInt(os.Args[1], 10, 64)
 	toblock, _ := strconv.ParseInt(os.Args[2], 10, 64)
+	ipaddress := os.Args[3]
 
 
 	for range ticker.C {
@@ -197,11 +197,6 @@ func main() {
 		}(from_to_name)
 		ws2.Wait()
 
-		exec.Command("rm","-rf",
-		"src/"+from_to_name,
-		 ).Run()
-
-		//S3へアップロード
 		ws2.Add(1)
 		go func(from_to_name string) {
 			
@@ -238,8 +233,47 @@ func main() {
 			ws2.Done()
 		}(from_to_name)
 
+		ws2.Add(1)
+		go func(from_to_name string) {
+			
+			//SCPでファイルを移動させます。
+			cmd := exec.Command("scp",
+				"src/"+from_to_name+".tar.gz",
+				"es_admin@"+ipaddress+":/home/es_admin/.go/src/github.com/iost-official/explorer/backend/task/src/",
+				)
+			stdErrorPipe, err := cmd.StderrPipe()
+			stdin, _ := cmd.StdinPipe()
+			io.WriteString(stdin, "yes")
+			stdin.Close()
+			if err != nil {
+				log.Fatal(err)
+			}
+
+			if err := cmd.Start(); err != nil {
+				log.Fatal(err)
+			}
+
+			slurp, _ := ioutil.ReadAll(stdErrorPipe)
+			fmt.Printf("stderr: %s\n", slurp)
+
+			if err := cmd.Wait(); err != nil {
+				log.Fatal(err)
+			}
+			if err != nil {
+				log.Println("command err:", err)
+			}
+			ws2.Done()
+		}(from_to_name)
+		
 		ws2.Wait()
 
+
+		exec.Command("rm","-rf",
+		"src/"+from_to_name,
+		 ).Run()
+
+		//S3へアップロード
+		//SCPする
 
 		inner_from_block += interval
 		inner_to_block += interval 
@@ -251,6 +285,7 @@ func main() {
 	
 	
 }
+
 func Printhoge(ws *sync.WaitGroup,getnum int64) {
 	defer ws.Done()
 	fmt.Print(getnum,"\n")

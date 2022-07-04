@@ -1,12 +1,12 @@
 {
   "port": "8080",
-  "rpcHost": "18.209.137.246:30002",
+  "rpcHost": "35.176.24.11:30002",
   "mongodb": {
     "host": "127.0.0.1",
     "port": "27017",
     "user": "explorer",
     "password": "explorder",
-    "db": "explorer5"
+    "db": "explorer4"
   },
   "googleCaptcha": {
     "secret": ""

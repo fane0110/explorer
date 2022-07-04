@@ -54,7 +54,7 @@ func main() {
 			db.CollectionContractTx                , 
 			db.CollectionVoteTx                    ,}
 
-	dname := "explorer"
+	dname := "explorer8"
 
 	fromblock, _ := strconv.ParseInt(os.Args[1], 10, 64)
 	toblock, _ := strconv.ParseInt(os.Args[2], 10, 64)
@@ -66,7 +66,7 @@ func main() {
 		log.Print(inner_from_block)
 		from_to_name := strconv.FormatInt(inner_from_block, 10) + "_" + strconv.FormatInt(inner_to_block, 10)
 		exec.Command("tar","-zxvf",
-		 from_to_name+".tar.gz",
+		 "src/"+from_to_name+".tar.gz",
 		 ).Run()
 
 		for _, value := range insertcollections {
@@ -78,7 +78,7 @@ func main() {
 					"-d="+dname, //explorer
 					"-c="+collectionname,
 					"--type=json",
-					"--file="+from_to_name+"/"+collectionname+".json")
+					"--file="+"src/"+from_to_name+"/"+collectionname+".json")
 				stdErrorPipe, err := cmd.StderrPipe()
 				if err != nil {
 					log.Fatal(err)
@@ -117,7 +117,7 @@ func main() {
 					"--type=json",
 					//"--mode=merge",
 					//"--upsertFields="+m2,
-					"--file="+from_to_name+"/"+collectionname+".json")
+					"--file="+"src/"+from_to_name+"/"+collectionname+".json")
 				stdErrorPipe, err := cmd.StderrPipe()
 				if err != nil {
 					log.Fatal(err)
@@ -146,7 +146,7 @@ func main() {
 		ws2.Wait()
 
 		exec.Command("rm","-rf",
-		 from_to_name,
+		"src/"+from_to_name,
 		 ).Run()
 
 		inner_from_block += interval
