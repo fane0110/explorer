@@ -239,7 +239,7 @@ func main() {
 			//SCPでファイルを移動させます。
 			cmd := exec.Command("scp",
 				"src/"+from_to_name+".tar.gz",
-				"es_admin@"+ipaddress+":/home/es_admin/.go/src/github.com/iost-official/explorer/backend/task/src/",
+				"ubuntu@"+ipaddress+":/home/ubuntu/.go/src/github.com/iost-official/explorer/backend/task/src/",
 				)
 			stdErrorPipe, err := cmd.StderrPipe()
 			stdin, _ := cmd.StdinPipe()
