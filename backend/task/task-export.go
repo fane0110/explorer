@@ -223,7 +223,7 @@ func main() {
 			defer file.Close()
 
 			bucketName := "stg.stir-hosyu"
-			objectKey := "iost-explorer2/"+from_to_name+".tar.gz"
+			objectKey := "iost-explorer/"+from_to_name+".tar.gz"
 
 			// Uploaderを作成し、ローカルファイルをアップロード
 			uploader := s3manager.NewUploader(sess)
