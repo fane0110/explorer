@@ -72,6 +72,14 @@ func main() {
 	inner_from_block :=fromblock
 	inner_to_block := inner_from_block +interval -1
 
+	// sessionの作成
+	sess := session.Must(session.NewSessionWithOptions(session.Options{
+		Config: aws.Config{Region: aws.String("ap-southeast-1")},
+		Profile:           "default",
+		SharedConfigState: session.SharedConfigEnable,
+	}))
+
+
 	
 	for;inner_from_block<toblock;{
 		for {
@@ -204,14 +212,7 @@ func main() {
 		//S3へアップロード
 		ws2.Add(1)
 		go func(from_to_name string) {
-			
-			
-			// sessionの作成
-			sess := session.Must(session.NewSessionWithOptions(session.Options{
-				Config: aws.Config{Region: aws.String("ap-southeast-1")},
-				Profile:           "default",
-				SharedConfigState: session.SharedConfigEnable,
-			}))
+				
 
 			// ファイルを開く
 			targetFilePath := "src/"+from_to_name+".tar.gz"
@@ -222,7 +223,7 @@ func main() {
 			defer file.Close()
 
 			bucketName := "stg.stir-hosyu"
-			objectKey := "iost-explorer/"+from_to_name+".tar.gz"
+			objectKey := "iost-explorer2/"+from_to_name+".tar.gz"
 
 			// Uploaderを作成し、ローカルファイルをアップロード
 			uploader := s3manager.NewUploader(sess)
