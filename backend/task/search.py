@@ -27,10 +27,13 @@ if __name__ == "__main__":
         
     print("hoge")
     fromblock = int(sys.argv[1])
-    while fromblock < int(sys.argv[1]):
+    while fromblock < int(sys.argv[2]):
         toblock = fromblock+999
         chkname = f"./src/{fromblock}_{toblock}.tar.gz"
         if chkname in names:
             pass
         else:
             print(f"Not_found_{chkname}")
+        fromblock = toblock +1
+
+    print(f"End {toblock}")
