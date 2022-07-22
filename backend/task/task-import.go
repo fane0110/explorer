@@ -54,7 +54,7 @@ func main() {
 			db.CollectionContractTx                , 
 			db.CollectionVoteTx                    ,}
 
-	dname := "explorer8"
+	dname := "explorer"
 
 	fromblock, _ := strconv.ParseInt(os.Args[1], 10, 64)
 	toblock, _ := strconv.ParseInt(os.Args[2], 10, 64)
