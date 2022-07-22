@@ -22,7 +22,7 @@ def uncommonnamecheck(x:str):
 
 
 if __name__ == "__main__":
-    names = [name for name in glob.glob('./**/*.json', recursive=True) if uncommonnamecheck(name)]
+    names = [name for name in glob.glob('./src/*.tar.gz', recursive=True)]
         
     print("hoge")
     for i in names:
