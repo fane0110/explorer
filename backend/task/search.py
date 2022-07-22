@@ -1,5 +1,6 @@
 ﻿import glob
 import os
+import sys
 
 def uncommonnamecheck(x:str):
     if "blocks" in x :
@@ -25,6 +26,11 @@ if __name__ == "__main__":
     names = [name for name in glob.glob('./src/*.tar.gz', recursive=True)]
         
     print("hoge")
-    for i in names:
-        if os.path.getsize(i)>512:
-            print(i)
+    fromblock = int(sys.argv[1])
+    while fromblock < int(sys.argv[1]):
+        toblock = fromblock+999
+        chkname = f"./src/{fromblock}_{toblock}.tar.gz"
+        if chkname in names:
+            pass
+        else:
+            print(f"Not_found_{chkname}")
