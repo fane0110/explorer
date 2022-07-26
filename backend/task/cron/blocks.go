@@ -57,7 +57,7 @@ func UpdateBlocks(ws *sync.WaitGroup) {
 }
 
 func LimitUpdateBlocks(ws *sync.WaitGroup) {
-	limit:= int64(210461000)
+	limit:= int64(210461001)
 	defer ws.Done()
 
 	blockChannel := make(chan *rpcpb.Block, 10)
