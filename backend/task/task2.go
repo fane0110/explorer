@@ -16,6 +16,6 @@ func main() {
 	// start tasks
 	ws.Add(1)
 	// download block
-	go cron.limitUpdateBlocks(ws)
+	go cron.LimitUpdateBlocks(ws)
 	ws.Wait()
 }

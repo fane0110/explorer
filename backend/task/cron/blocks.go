@@ -56,7 +56,7 @@ func UpdateBlocks(ws *sync.WaitGroup) {
 
 }
 
-func limitUpdateBlocks(ws *sync.WaitGroup) {
+func LimitUpdateBlocks(ws *sync.WaitGroup) {
 	limit:= int64(210461000)
 	defer ws.Done()
 
