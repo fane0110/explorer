@@ -1,23 +1,21 @@
 package main
 
 import (
-	"fmt"
-	"time"
+	"sync"
+
+	"github.com/iost-official/explorer/backend/config"
+	"github.com/iost-official/explorer/backend/task/cron"
+	
 )
 
+var ws = new(sync.WaitGroup)
+
 func main() {
-	now := time.Now()
+	config.ReadConfig("")
 
-	time.Sleep(time.Second * 2)
-
-	s1 := time.Since(now)
-
-	time.Sleep(time.Second * 2)
-
-	s2 := time.Since(now)
-
-	fmt.Println((s1 + s2) / 10)
-
-	var a time.Duration
-	fmt.Println(a)
+	// start tasks
+	ws.Add(1)
+	// download block
+	go cron.limitUpdateBlocks(ws)
+	ws.Wait()
 }

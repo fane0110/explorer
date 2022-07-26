@@ -56,6 +56,58 @@ func UpdateBlocks(ws *sync.WaitGroup) {
 
 }
 
+func limitUpdateBlocks(ws *sync.WaitGroup) {
+	limit:= int64(210461000)
+	defer ws.Done()
+
+	blockChannel := make(chan *rpcpb.Block, 10)
+	go insertBlock(blockChannel)
+
+	ticker := time.NewTicker(time.Second)
+
+	var topHeightInMongo int64
+	for range ticker.C {
+		topBlkInMongo, err := db.GetTopBlock()
+		if err != nil {
+			log.Println("updateBlock get topBlk in mongo error:", err)
+			if err.Error() != "not found" {
+				continue
+			} else {
+				topHeightInMongo = 0
+				break
+			}
+		}
+		topHeightInMongo = topBlkInMongo.Number + 1
+		log.Println("Got Top Block From Mongo With Number: ", topHeightInMongo)
+		break
+	}
+
+	for {
+		if topHeightInMongo == limit{
+			time.Sleep(time.Second * 5)
+			break
+		}
+		blockRspn, err := blockchain.GetBlockByNum(topHeightInMongo, true)
+		if err != nil {
+			log.Println("Download block", topHeightInMongo, "error:", err)
+			time.Sleep(time.Second)
+			continue
+		}
+		if blockRspn.Status == rpcpb.BlockResponse_PENDING {
+			log.Println("Download block", topHeightInMongo, "Pending")
+			time.Sleep(time.Second)
+			continue
+		}
+		blockChannel <- blockRspn.Block
+		topHeightInMongo++
+		log.Println("Download block", topHeightInMongo, " Succ!")
+
+
+	}
+
+}
+
+
 
 func GetBlock(ws *sync.WaitGroup,getnum int64) {
 	defer ws.Done()
